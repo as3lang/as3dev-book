@@ -1,0 +1,263 @@
+#!/bin/bash -e
+
+# check the build dependencies
+
+# functions
+
+check_tool() {
+  command -v "$1" >/dev/null 2>&1 || (echo "You need to install '$1'" && exit 2)
+}
+
+detect_platform() {
+    local PLATFORM="";
+    case "$(uname -s)" in
+
+       Darwin)
+         PLATFORM="macintosh"
+         ;;
+
+       Linux)
+         PLATFORM="linux"
+         ;;
+
+       CYGWIN*)
+         PLATFORM="windows"
+         ;;
+
+       *)
+         PLATFORM="unknown"
+         ;;
+    esac
+
+    echo "${PLATFORM}";
+}
+
+is_wsl() {
+    if [ -f /proc/version ]; then
+        local found=$(grep -q Microsoft /proc/version);
+        if $found; then
+            return 0;
+        else
+            return 1;
+        fi
+    fi
+
+    return 1;
+}
+
+current_dir() {
+    echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+}
+
+diag_tool() {
+  command -v "$1" >/dev/null 2>&1 || (false)
+}
+
+msg_red() {
+  local msg="$1"
+  echo -e "\033[91m$msg\033[0m";
+}
+
+msg_orange() {
+  local msg="$1"
+  echo -e "\033[93m$msg\033[0m";
+}
+
+msg_green() {
+  local msg="$1"
+  echo -e "\033[92m$msg\033[0m";
+}
+
+msg_blue() {
+  local msg="$1"
+  echo -e "\033[94m$msg\033[0m";
+}
+
+msg_fuschia() {
+  local msg="$1"
+  echo -e "\033[95m$msg\033[0m";
+}
+
+line_OK() {
+  local msg="$1";
+  local line="$2";
+  local proc="$3";
+  local name="${line:${#proc}} $proc";
+  local tmp=$(printf "$msg" "$name");
+  echo -e "\033[92m$tmp\033[0m";
+}
+
+line_FAIL() {
+  local msg="$1";
+  local line="$2";
+  local proc="$3";
+  local name="${line:${#proc}} $proc";
+  local tmp=$(printf "$msg" "$name");
+  echo -e "\033[91m$tmp\033[0m";
+}
+
+msg_OK() {
+  line_OK "⭕️ %25s" "......................." "$1"
+}
+
+msg_FAIL() {
+  line_FAIL "❌ %25s" "......................." "$1"
+}
+
+#options
+SILENT_MODE=false
+
+show_help() {
+cat << EOF
+Usage: $(msg_green ${0##*/}) [-h] [-s]
+Check build dependencies
+
+options:
+  -h     Show this help
+  -s     Silent mode
+
+legend:
+
+⭕️  = OK
+❌  = Fail
+⁉️  = Unknown
+‼️  = Attention
+⭐️  = Gold Star, everything OK
+⚠️  = Warning, some missing
+🔥  = Fire, everything failed
+🔰  = Beginner
+❤️  = Love
+
+exit codes:
+   $(msg_green 0)     no dependencies missing
+   $(msg_red 1)     some dependencies missing
+   $(msg_red 2)     all dependencies missing
+
+Note:
+in silent mode use the exit code ($(msg_blue "echo \$?")) to know
+if dependencies are missing (see: $(msg_fuschia "test_check")).
+EOF
+}
+
+cli_options() {
+    local OPTIND;
+    while getopts "hs" opt; do
+        case "$opt" in
+            h)
+                show_help
+                exit 0
+                ;;
+            s)
+                SILENT_MODE=true
+                ;;
+            '?')
+                show_help >&2
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# --- main ---
+
+# check cli options
+cli_options "${@}";
+
+# check platform
+PLATFORM=$(detect_platform);
+
+if [ "${PLATFORM}" == "linux"]; then
+    if is_wsl; then
+        echo "Running on Windows Subsystem for Linux";
+    fi
+fi
+
+
+# banner
+if ! $SILENT_MODE; then
+    echo "        __              __  ";
+    echo "  _____/ /_  ___  _____/ /__";
+    echo " / ___/ __ \/ _ \/ ___/ //_/";
+    echo "/ /__/ / / /  __/ /__/ ,<   ";
+    echo "\___/_/ /_/\___/\___/_/|_|  ";
+    echo "---------------------------";
+    echo "Checking build dependencies";
+    echo "---------------------------";
+    echo "";
+fi
+
+if [[ "$PLATFORM" == "unknown" ]]; then
+    msg_red "⁉️  could not detect the platform";
+    exit 1;
+fi
+
+deps=(
+ "gitbook" "" "" ""
+ "pandoc" "" "" ""
+ "zip" "" "" ""
+ #"zorglub" "" "" ""
+ #"barbatruc" "" "" ""
+ "as3shebang" "" "" ""
+)
+
+index=0;
+found=0;
+total=0;
+for ((i=0;i<${#deps[@]};i+=4)); do
+    dep=${deps[i]};
+    total=$((total+1));
+    if diag_tool "$dep"; then
+        #echo "found $dep";
+        if ! $SILENT_MODE; then
+            msg_OK "$dep";
+        fi
+        found=$((found+1));
+    else
+        #echo "not found $dep";
+        if ! $SILENT_MODE; then
+            msg_FAIL "$dep";
+        fi
+    fi
+done
+
+#echo "";
+#echo "total dependencies = $total";
+#echo "found dependencies = $found";
+
+if ! $SILENT_MODE; then
+    echo "";
+fi
+
+if (( $found < $total )); then
+    missing=$(($total-$found));
+    if (($missing == $total)); then
+        if ! $SILENT_MODE; then
+            msg_red "🔥  all dependencies are missing ‼️";
+        fi
+        exit 2;
+    elif (($missing == 1)); then
+        if ! $SILENT_MODE; then
+            msg_orange "⚠️  $missing dependency is missing";
+        fi
+        exit 1;
+    else
+        if ! $SILENT_MODE; then
+            msg_orange "⚠️  $missing dependencies are missing";
+        fi
+        exit 1;
+    fi
+else
+    if ! $SILENT_MODE; then
+        msg_green "⭐️  all dependencies found";
+    fi
+fi
+
+# footer
+if ! $SILENT_MODE; then
+    echo "";
+    echo -e "\033[1;31;103m  made with ❤️  by as3lang  \033[0m";
+    echo "";
+fi
+
+# EOF
+exit 0;

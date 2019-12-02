@@ -96,13 +96,52 @@ line_FAIL() {
   echo -e "\033[91m$tmp\033[0m";
 }
 
+
+#configure dynamically
+
+PLATFORM=$(detect_platform);
+
+
+if [ "${PLATFORM}" == "linux" ]; then
+    if is_wsl; then
+        #echo "Running on Windows Subsystem for Linux";
+        USE_EMOJI=false
+    else
+        USE_EMOJI=true
+    fi
+fi
+
+if $USE_EMOJI; then
+    SIGN_OK="⭕️"
+    SIGN_FAIL="❌"
+    SIGN_UNKNOWN=""
+    SIGN_ATTENTION=""
+    SIGN_STAR=""
+    SIGN_WARNING="️️️⚠️"
+    SIGN_FIRE=""
+    SIGN_BEGINNER=""
+    SIGN_LOVE=""
+else
+    SIGN_OK="\u221A"
+    SIGN_FAIL="\u00D7"
+    SIGN_UNKNOWN=""
+    SIGN_ATTENTION=""
+    SIGN_STAR=""
+    SIGN_WARNING="\u25B2"
+    SIGN_FIRE=""
+    SIGN_BEGINNER=""
+    SIGN_LOVE=""
+fi
+
+
 msg_OK() {
-  line_OK "⭕️ %25s" "......................." "$1"
+  line_OK "$SIGN_OK %25s" "......................." "$1"
 }
 
 msg_FAIL() {
-  line_FAIL "❌ %25s" "......................." "$1"
+  line_FAIL "$SIGN_FAIL %25s" "......................." "$1"
 }
+
 
 #options
 SILENT_MODE=false
@@ -118,12 +157,12 @@ options:
 
 legend:
 
-⭕️  = OK
-❌  = Fail
+$(echo -e $SIGN_OK)  = OK
+$(echo -e $SIGN_FAIL)  = Fail
 ⁉️  = Unknown
 ‼️  = Attention
 ⭐️  = Gold Star, everything OK
-⚠️  = Warning, some missing
+$(echo -e $SIGN_WARNING)  = Warning, some missing
 🔥  = Fire, everything failed
 🔰  = Beginner
 ❤️  = Love
@@ -166,11 +205,12 @@ cli_options "${@}";
 # check platform
 PLATFORM=$(detect_platform);
 
-if [ "${PLATFORM}" == "linux"]; then
+if [ "${PLATFORM}" == "linux" ]; then
     if is_wsl; then
         echo "Running on Windows Subsystem for Linux";
     fi
 fi
+
 
 
 # banner
@@ -237,12 +277,12 @@ if (( $found < $total )); then
         exit 2;
     elif (($missing == 1)); then
         if ! $SILENT_MODE; then
-            msg_orange "⚠️  $missing dependency is missing";
+            msg_orange "$SIGN_WARNING $missing dependency is missing";
         fi
         exit 1;
     else
         if ! $SILENT_MODE; then
-            msg_orange "⚠️  $missing dependencies are missing";
+            msg_orange "$SIGN_WARNING $missing dependencies are missing";
         fi
         exit 1;
     fi

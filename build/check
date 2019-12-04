@@ -58,14 +58,14 @@ msg_red() {
   echo -e "\033[91m$msg\033[0m";
 }
 
-msg_orange() {
-  local msg="$1"
-  echo -e "\033[93m$msg\033[0m";
-}
-
 msg_green() {
   local msg="$1"
   echo -e "\033[92m$msg\033[0m";
+}
+
+msg_orange() {
+  local msg="$1"
+  echo -e "\033[93m$msg\033[0m";
 }
 
 msg_blue() {
@@ -73,7 +73,7 @@ msg_blue() {
   echo -e "\033[94m$msg\033[0m";
 }
 
-msg_fuschia() {
+msg_magenta() {
   local msg="$1"
   echo -e "\033[95m$msg\033[0m";
 }
@@ -109,28 +109,34 @@ if [ "${PLATFORM}" == "linux" ]; then
     else
         USE_EMOJI=true
     fi
+elif [ "${PLATFORM}" == "windows" ]; then
+    USE_EMOJI=false
+else
+    USE_EMOJI=true
 fi
 
+# with WSL, CMD or Windows Terminal use Consolas font
+# see: https://www.fileformat.info/info/unicode/font/consolas/grid.htm
 if $USE_EMOJI; then
     SIGN_OK="⭕️"
     SIGN_FAIL="❌"
-    SIGN_UNKNOWN=""
-    SIGN_ATTENTION=""
-    SIGN_STAR=""
+    SIGN_UNKNOWN="⁉️"
+    SIGN_ATTENTION="‼️"
+    SIGN_STAR="⭐️"
     SIGN_WARNING="️️️⚠️"
-    SIGN_FIRE=""
-    SIGN_BEGINNER=""
-    SIGN_LOVE=""
+    SIGN_FIRE="🔥"
+    SIGN_BEGINNER="🔰"
+    SIGN_LOVE="❤️"
 else
-    SIGN_OK="\u221A"
-    SIGN_FAIL="\u00D7"
-    SIGN_UNKNOWN=""
-    SIGN_ATTENTION=""
-    SIGN_STAR=""
-    SIGN_WARNING="\u25B2"
-    SIGN_FIRE=""
-    SIGN_BEGINNER=""
-    SIGN_LOVE=""
+    SIGN_OK="√" # \u221A
+    SIGN_FAIL="×" # \u00D7
+    SIGN_UNKNOWN="‽" # \u203D
+    SIGN_ATTENTION="‼" # \u203C
+    SIGN_STAR="☺" # \u263A
+    SIGN_WARNING="▲" # \u25B2
+    SIGN_FIRE="✶" # \u2736
+    SIGN_BEGINNER="⌂" # \u2302
+    SIGN_LOVE="♥" # \u2665
 fi
 
 
@@ -157,15 +163,15 @@ options:
 
 legend:
 
-$(echo -e $SIGN_OK)  = OK
-$(echo -e $SIGN_FAIL)  = Fail
-⁉️  = Unknown
-‼️  = Attention
-⭐️  = Gold Star, everything OK
-$(echo -e $SIGN_WARNING)  = Warning, some missing
-🔥  = Fire, everything failed
-🔰  = Beginner
-❤️  = Love
+$SIGN_OK  = OK
+$SIGN_FAIL  = Fail
+$SIGN_UNKNOWN  = Unknown
+$SIGN_ATTENTION  = Attention
+$SIGN_STAR  = Gold Star, everything OK
+$SIGN_WARNING  = Warning, some missing
+$SIGN_FIRE  = Fire, everything failed
+$SIGN_BEGINNER  = Beginner
+$SIGN_LOVE  = Love
 
 exit codes:
    $(msg_green 0)     no dependencies missing
@@ -174,7 +180,7 @@ exit codes:
 
 Note:
 in silent mode use the exit code ($(msg_blue "echo \$?")) to know
-if dependencies are missing (see: $(msg_fuschia "test_check")).
+if dependencies are missing (see: $(msg_magenta "test_check")).
 EOF
 }
 
@@ -227,17 +233,17 @@ if ! $SILENT_MODE; then
 fi
 
 if [[ "$PLATFORM" == "unknown" ]]; then
-    msg_red "⁉️  could not detect the platform";
+    msg_red "$SIGN_ATTENTION could not detect the platform";
     exit 1;
 fi
 
 deps=(
- "gitbook" "" "" ""
+ #"gitbook" "" "" ""
  "pandoc" "" "" ""
  "zip" "" "" ""
  #"zorglub" "" "" ""
  #"barbatruc" "" "" ""
- "as3shebang" "" "" ""
+ #"as3shebang" "" "" ""
 )
 
 index=0;
@@ -272,30 +278,30 @@ if (( $found < $total )); then
     missing=$(($total-$found));
     if (($missing == $total)); then
         if ! $SILENT_MODE; then
-            msg_red "🔥  all dependencies are missing ‼️";
+            msg_red "$SIGN_FIRE  all dependencies are missing $SIGN_ATTENTION";
         fi
         exit 2;
     elif (($missing == 1)); then
         if ! $SILENT_MODE; then
-            msg_orange "$SIGN_WARNING $missing dependency is missing";
+            msg_orange "$SIGN_WARNING  $missing dependency is missing";
         fi
         exit 1;
     else
         if ! $SILENT_MODE; then
-            msg_orange "$SIGN_WARNING $missing dependencies are missing";
+            msg_orange "$SIGN_WARNING  $missing dependencies are missing";
         fi
         exit 1;
     fi
 else
     if ! $SILENT_MODE; then
-        msg_green "⭐️  all dependencies found";
+        msg_green "$SIGN_STAR  all dependencies found";
     fi
 fi
 
 # footer
 if ! $SILENT_MODE; then
     echo "";
-    echo -e "\033[1;31;103m  made with ❤️  by as3lang  \033[0m";
+    echo -e "\033[1;31;103m  made with $SIGN_LOVE  by as3lang  \033[0m";
     echo "";
 fi
 
